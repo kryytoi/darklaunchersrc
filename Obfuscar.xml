@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<!--
+  Усиленная конфигурация Obfuscar для DarkVisualsLauncher1.
+
+  ВАЖНОЕ ИЗМЕНЕНИЕ по сравнению с прошлой версией:
+  Вся логика авторизации / HWID / AES-расшифровки / скачивания мода
+  вынесена из MainWindow.xaml.cs в отдельные классы:
+    DarkVisualsLauncher1.Security.AuthService
+    DarkVisualsLauncher1.Security.LicenseClient
+    DarkVisualsLauncher1.Security.HwidHelper
+
+  Раньше вся эта логика жила в MainWindow.xaml.cs, а MainWindow целиком
+  стоял в SkipType (из-за XAML-биндингов) — значит Obfuscar его вообще
+  не трогал, и в декомпиляции все методы (DoLoginAsync, GetHwid,
+  DecryptAes...) были видны с исходными именами.
+
+  Теперь MainWindow — тонкая обёртка над UI и вызовами этих сервисов.
+  Она всё ещё в SkipType (иначе сломается XAML), но сама чувствительная
+  логика лежит в классах, которые НЕ в SkipType — значит переименовываются
+  и шифруются строками как обычно.
+-->
+<Obfuscator>
+	<Var name="InPath" value="C:\Users\NewDarko\source\repos\DarkVisualsLauncher1\DarkVisualsLauncher1\bin\Release\net8.0-windows" />
+	<Var name="OutPath" value="C:\Users\NewDarko\source\repos\DarkVisualsLauncher1\DarkVisualsLauncher1\bin\Release\net8.0-windows\Obfuscated" />
+
+	<Var name="KeepPublicApi" value="false" />
+	<Var name="HidePrivateApi" value="true" />
+	<Var name="HideStrings" value="true" />
+	<Var name="UseUnicodeNames" value="true" />
+	<Var name="UseKoreanNames" value="false" />
+	<Var name="RenameProperties" value="true" />
+	<Var name="RenameEvents" value="true" />
+	<Var name="RenameFields" value="true" />
+	<Var name="ReuseNames" value="true" />
+	<Var name="OptimizeMethods" value="true" />
+
+	<Module file="C:\Users\NewDarko\source\repos\DarkVisualsLauncher1\DarkVisualsLauncher1\bin\Release\net8.0-windows\DarkVisualsLauncher1.dll">
+		<!-- Эти типы связаны с XAML — трогать нельзя, иначе окно не соберётся -->
+		<SkipType name="DarkVisualsLauncher1.MainWindow" />
+		<SkipType name="DarkVisualsLauncher1.App" />
+
+		<!-- Friend/ModItem биндятся в XAML по именам свойств — пропускаем -->
+		<SkipType name="DarkVisualsLauncher1.Friend" />
+		<SkipType name="DarkVisualsLauncher1.ModItem" />
+
+		<!--
+		  НЕ добавляй сюда AuthService, LicenseClient, HwidHelper —
+		  это именно те классы, которые обфускатор ДОЛЖЕН переименовать
+		  и зашифровать строки внутри них. Если когда-нибудь свяжешь их
+		  с XAML напрямую — сначала подумай, не проще ли оставить их
+		  вызываемыми из code-behind, а не биндить напрямую.
+		-->
+	</Module>
+</Obfuscator>

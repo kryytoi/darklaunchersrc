@@ -1,0 +1,1091 @@
+﻿<Window x:Class="DarkVisualsLauncher1.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DarkVisualsLauncher1"
+        Title="Dark Visuals" Height="650" Width="1000"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterScreen" MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+
+        <local:IconPathConverter x:Key="IconPathConverter"/>
+        <local:IconSizeConverter x:Key="IconSizeConverter"/>
+
+        <!-- ===================== БАЗОВЫЕ ЦВЕТА ===================== -->
+        <SolidColorBrush x:Key="********" Color="#8A2BE2"/>
+            <SolidColorBrush x:Key="CardBrush" Color="#1C1C1C"/>
+            <SolidColorBrush x:Key="MutedTextBrush" Color="#888888"/>
+
+            <!-- ===================== КНОПКИ МЕНЮ (слева) ===================== -->
+            <Style x:Key="MenuButtonStyle" TargetType="{x:Type RadioButton}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontSize" Value="18"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Margin" Value="10,5"/>
+                <Setter Property="Height" Value="50"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type RadioButton}">
+                            <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="10" BorderThickness="2" BorderBrush="Transparent" Padding="15,0">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Grid Width="32" Margin="0,0,12,0">
+                                        <Image Source="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource IconPathConverter}}"
+                                           Width="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource IconSizeConverter}}"
+                                           Height="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource IconSizeConverter}}"
+                                           Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ********}"/>
+                                    <Setter TargetName="border" Property="Background" Value="#161616"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#1A1A1A"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ===================== КАРТОЧКИ (с мягкой тенью для объёма) ===================== -->
+            <Style x:Key="CardStyle" TargetType="{x:Type Border}">
+                <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+                <Setter Property="CornerRadius" Value="15"/>
+                <Setter Property="Padding" Value="20"/>
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect Color="Black" Direction="270" ShadowDepth="3" BlurRadius="14" Opacity="0.35"/>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ===================== АКЦЕНТНАЯ КНОПКА ===================== -->
+            <Style x:Key="AccentButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource ********}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Padding" Value="18,8"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.7"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ===================== МАЛЕНЬКАЯ ИКОНКА-КНОПКА (удалить/изменить/выход) ===================== -->
+            <Style x:Key="IconMiniButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="26"/>
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#2A2A2A"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ===================== ТУМБЛЕР (переключатель) ===================== -->
+            <Style x:Key="ToggleSwitchStyle" TargetType="CheckBox">
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Border x:Name="track" Width="48" Height="26" CornerRadius="13" Background="#333333">
+                                <Border x:Name="knob" Width="20" Height="20" CornerRadius="10" Background="White"
+                                    HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="track" Property="Background" Value="{StaticResource ********}"/>
+                                    <Setter TargetName="knob" Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter TargetName="knob" Property="Margin" Value="0,0,3,0"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ===================== ПОЛЯ ВВОДА С ПЛЕЙСХОЛДЕРОМ ===================== -->
+            <Style x:Key="DarkTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="CaretBrush" Value="White"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="15,0"/>
+                <Setter Property="FontSize" Value="15"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Height" Value="40"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                <Grid>
+                                    <TextBlock Text="{TemplateBinding Tag}" Foreground="#666" Margin="{TemplateBinding Padding}"
+                                           VerticalAlignment="Center" FontSize="{TemplateBinding FontSize}" IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text.Length, RelativeSource={RelativeSource TemplatedParent}}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Поле поиска -->
+            <Style x:Key="SearchTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DarkTextBoxStyle}">
+                <Setter Property="Padding" Value="15,0,40,0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                <Grid>
+                                    <TextBlock Text="{TemplateBinding Tag}" Foreground="#666" Margin="{TemplateBinding Padding}"
+                                           VerticalAlignment="Center" FontSize="{TemplateBinding FontSize}" IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text.Length, RelativeSource={RelativeSource TemplatedParent}}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="🔍" Foreground="#666" FontSize="15" VerticalAlignment="Center"
+                                           HorizontalAlignment="Right" Margin="0,0,15,0" IsHitTestVisible="False"/>
+                                </Grid>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ===================== КАРТОЧКА ДРУГА (с подсветкой при наведении) ===================== -->
+            <Style x:Key="FriendCardBorderStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+                <Setter Property="CornerRadius" Value="10"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#242424"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <DataTemplate x:Key="FriendCardTemplate">
+                <Border Style="{StaticResource FriendCardBorderStyle}" Width="190" Height="64" Margin="0,0,15,15" Padding="12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="34" Height="34" CornerRadius="17" Background="#2A1E3A" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding InitialLetter}" Foreground="{StaticResource ********}" FontWeight="Bold" FontSize="16"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Nickname}" Foreground="White" FontWeight="Bold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <Button Style="{StaticResource IconMiniButtonStyle}" Click="RemoveFriend_Click" Tag="{Binding}" ToolTip="Удалить друга">
+                                    <TextBlock Text="✖" Foreground="#E05555" FontSize="13"/>
+                                </Button>
+                                <Button Style="{StaticResource IconMiniButtonStyle}" Click="EditFriend_Click" Tag="{Binding}" Margin="4,0,0,0" ToolTip="Изменить ник">
+                                    <TextBlock Text="✏" Foreground="#AAAAAA" FontSize="13"/>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <!-- ===================== КАРТОЧКА МОДА (Мастерская) ===================== -->
+            <DataTemplate x:Key="ModCardTemplate">
+                <Border Style="{StaticResource FriendCardBorderStyle}" Width="320" Height="160" Margin="0,0,15,15" Padding="15">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Column="0" Grid.Row="0" Width="48" Height="48" CornerRadius="10" Background="#2A1E3A" ClipToBounds="True">
+                            <Image Source="{Binding IconUrl}" Stretch="UniformToFill"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Grid.Row="0" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding DownloadsText}" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Description}" Foreground="#AAAAAA" FontSize="12"
+                               TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="55" Margin="0,10,0,0"/>
+
+                        <Button Grid.Row="2" Grid.ColumnSpan="2" Content="{Binding StatusText}" Style="{StaticResource AccentButtonStyle}"
+                            HorizontalAlignment="Stretch" Margin="0,10,0,0" Click="BtnDownloadMod_Click" Tag="{Binding}"
+                            IsEnabled="{Binding IsEnabled}"/>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <!-- ===================== КАРТОЧКА УСТАНОВЛЕННОГО МОДА ===================== -->
+            <DataTemplate x:Key="InstalledModCardTemplate">
+                <Border Style="{StaticResource FriendCardBorderStyle}" Width="320" Height="60" Margin="0,0,15,15" Padding="15,10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Width="34" Height="34" CornerRadius="8" Background="#2A1E3A" VerticalAlignment="Center">
+                            <TextBlock Text="📦" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Margin="10,0,10,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding FileName}" Foreground="White" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="Установлен" Foreground="#4CAF50" FontSize="11"/>
+                        </StackPanel>
+
+                        <Button Grid.Column="2" Style="{StaticResource IconMiniButtonStyle}" Click="RemoveInstalledMod_Click"
+                    Tag="{Binding}" ToolTip="Удалить мод" VerticalAlignment="Center">
+                            <TextBlock Text="🗑" Foreground="#E05555" FontSize="14"/>
+                        </Button>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <!-- ===================== ЛУЧ СВЕТЯЩЕГОСЯ ПЯТНА (экран входа) ===================== -->
+            <!-- Каждый луч сам запускает свою анимацию цвета при Loaded.
+             Fill задаётся ИНЛАЙНОМ у каждого Rectangle (не в Setter!),
+             иначе кисть будет общей/замороженной и анимация не сработает. -->
+            <Style x:Key="GlowRayStyle" TargetType="Rectangle">
+                <Setter Property="Width" Value="16"/>
+                <Setter Property="Height" Value="420"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Opacity" Value="0.5"/>
+                <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <BlurEffect Radius="24"/>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                        <BeginStoryboard>
+                            <Storyboard RepeatBehavior="Forever">
+                                <ColorAnimationUsingKeyFrames
+                                Storyboard.TargetProperty="(Shape.Fill).(LinearGradientBrush.GradientStops)[1].(GradientStop.Color)"
+                                Duration="0:0:16">
+                                    <LinearColorKeyFrame KeyTime="0:0:0"  Value="#8A2BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:4"  Value="#2B7BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:8"  Value="#21D6C0"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:12" Value="#E2497F"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:16" Value="#8A2BE2"/>
+                                </ColorAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Style.Triggers>
+            </Style>
+
+    </Window.Resources>
+
+    <Border Background="#101010" CornerRadius="25">
+        <Grid>
+            <!-- Кнопки управления окном -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,15,20,0" Panel.ZIndex="10">
+                <Button Content="—" Foreground="#666" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Margin="0,0,15,0" Click="BtnMinimize_Click"/>
+                <Button Content="✕" Foreground="#666" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Click="BtnClose_Click"/>
+            </StackPanel>
+
+            <Grid x:Name="MainUI" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ЛЕВОЕ МЕНЮ -->
+                <Grid Grid.Column="0" Margin="10,20,0,20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="20,0,0,30" HorizontalAlignment="Left">
+                        <Image Source="logo.png" Width="35" Height="35" Stretch="Uniform" Margin="0,0,10,0"/>
+                        <TextBlock Text="Dark Visuals" Foreground="White" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1">
+                        <RadioButton Content="Главная" Tag="/home.png|32" Style="{StaticResource MenuButtonStyle}" IsChecked="True" Checked="Menu_Checked" x:Name="TabHome"/>
+                        <RadioButton Content="Версия" Tag="/version.png" Style="{StaticResource MenuButtonStyle}" Checked="Menu_Checked" x:Name="TabVersion"/>
+                        <RadioButton Content="Друзья" Tag="/friends.png" Style="{StaticResource MenuButtonStyle}" Checked="Menu_Checked" x:Name="TabFriends"/>
+                        <RadioButton Content="Мастерская" Tag="/workshop.png" Style="{StaticResource MenuButtonStyle}" Checked="Menu_Checked" x:Name="TabWorkshop"/>
+                        <RadioButton Content="Скины" Tag="/skins.png|32" Style="{StaticResource MenuButtonStyle}" Checked="Menu_Checked" x:Name="TabSkins"/>
+                        <RadioButton Content="Статистика" Tag="/statistics.png|32" Style="{StaticResource MenuButtonStyle}" Checked="Menu_Checked" x:Name="TabStats"/>
+                        <RadioButton Content="Новости" Tag="/news.png|15" Style="{StaticResource MenuButtonStyle}" Checked="Menu_Checked" x:Name="TabNews"/>
+                        <RadioButton Content="Профиль" Tag="/profile.png|32" Style="{StaticResource MenuButtonStyle}" Checked="Menu_Checked" x:Name="TabProfile"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="2" Background="{StaticResource CardBrush}" CornerRadius="15" Padding="10" Margin="10,0,10,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Width="40" Height="40" CornerRadius="8" Background="#4CAF50">
+                                <Grid>
+                                    <TextBlock x:Name="SidebarAvatarLetter" Text="M" Foreground="White" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Border CornerRadius="8">
+                                        <Border.Background>
+                                            <ImageBrush x:Name="SidebarAvatarBrush" Stretch="UniformToFill"/>
+                                        </Border.Background>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="ProfileNameText" Text="MrDarko" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                                    <TextBlock x:Name="ProfileRoleIcon" Text="👾" Foreground="{StaticResource ********}" FontSize="12" Margin="5,2,0,0"/>
+                                </StackPanel>
+                                <Grid Margin="0,6,0,0">
+                                    <Button Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Left"
+                            Cursor="Hand" Click="BtnLogout_Click" ToolTip="Выйти из аккаунта">
+                                        <Canvas Width="18" Height="18">
+                                            <Polyline Points="7,2 3,2 3,16 7,16" Stroke="#888" StrokeThickness="1.6" StrokeLineJoin="Round"/>
+                                            <Line X1="6" Y1="9" X2="15" Y2="9" Stroke="#888" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                            <Polyline Points="11,5 15,9 11,13" Stroke="#888" StrokeThickness="1.6" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                        </Canvas>
+                                    </Button>
+                                    <TextBlock Text="69 дней" Foreground="{StaticResource MutedTextBrush}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ПРАВАЯ ЧАСТЬ -->
+                <Grid x:Name="ContentArea" Grid.Column="1" Margin="10,40,30,20">
+
+                    <!-- ================= ГЛАВНАЯ ================= -->
+                    <Grid x:Name="PageHome" Visibility="Visible">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Style="{StaticResource CardStyle}" Height="180">
+                            <Grid>
+                                <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <TextBlock Text="Добро пожаловать в" Foreground="White" FontSize="26" FontWeight="Bold"/>
+                                    <TextBlock Text="Dark Visuals" Foreground="{StaticResource ********}" FontSize="30" FontWeight="Bold" Margin="0,0,0,15"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="BtnPlay" Style="{StaticResource AccentButtonStyle}" FontSize="18" Padding="25,10" Click="BtnLaunchFabric_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="play.png" Width="18" Height="18" Margin="0,0,10,0"/>
+                                                <TextBlock Text="Играть"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Border Background="#333" CornerRadius="8" Padding="15,10" Margin="15,0,0,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="📜" Foreground="White" Margin="0,0,10,0"/>
+                                                <TextBlock Text="1.21.4 fabric" Foreground="White" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+                                <Border Width="120" Height="120" CornerRadius="15" Background="Black" HorizontalAlignment="Right" Margin="0,0,10,0">
+                                    <Image Source="logo.png" Stretch="Uniform" Margin="15"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Row="1" Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0">
+                                <StackPanel VerticalAlignment="Top">
+                                    <TextBlock Text="Обновления 📝" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
+                                    <TextBlock Text="1. Релиз!!!" Foreground="White" FontSize="16"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardStyle}" Grid.Column="1" Margin="10,0,0,0">
+                                <StackPanel VerticalAlignment="Top">
+                                    <TextBlock Text="Косметика 💎" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
+                                    <TextBlock Text="🎨" FontSize="40" Foreground="{StaticResource ********}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <!-- ================= ВЕРСИЯ ================= -->
+                    <Grid x:Name="PageVersions" Visibility="Collapsed">
+                        <WrapPanel Orientation="Horizontal">
+                            <Border Width="280" Height="140" Background="{StaticResource CardBrush}" CornerRadius="15" BorderBrush="{StaticResource ********}" BorderThickness="2" Margin="0,0,20,20" Padding="15">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                                        <TextBlock Text="📜" FontSize="30" Margin="0,0,10,0"/>
+                                        <TextBlock Text="1.21.4 Fabric" Foreground="White" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Версия 1.21.4&#x0a;для майнкрафт" Foreground="#AAA" TextAlignment="Right" VerticalAlignment="Bottom" HorizontalAlignment="Right" FontSize="14"/>
+                                </Grid>
+                            </Border>
+                            <Border Width="280" Height="140" Background="{StaticResource CardBrush}" CornerRadius="15" Margin="0,0,20,20" Padding="15" Opacity="0.7">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                                        <TextBlock Text="🟩" FontSize="30" Margin="0,0,10,0"/>
+                                        <TextBlock Text="1.16.5" Foreground="White" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Чуть чуть старенькая&#x0a;версия для Майнкрафта" Foreground="#AAA" TextAlignment="Right" VerticalAlignment="Bottom" HorizontalAlignment="Right" FontSize="14"/>
+                                </Grid>
+                            </Border>
+                        </WrapPanel>
+                    </Grid>
+
+                    <!-- ================= ДРУЗЬЯ ================= -->
+                    <Grid x:Name="PageFriends" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,30">
+                            <TextBox x:Name="FriendSearchBox" Style="{StaticResource SearchTextBoxStyle}" Tag="Поиск" Width="250"
+                                     TextChanged="FriendSearchBox_TextChanged"/>
+                            <TextBox x:Name="NewFriendBox" Style="{StaticResource DarkTextBoxStyle}" Tag="Ник друга" Width="160" Margin="15,0,0,0"
+                                     KeyDown="NewFriendBox_KeyDown"/>
+                            <Button Content="+ Добавить" Style="{StaticResource AccentButtonStyle}" Height="40" Margin="10,0,0,0" Click="AddFriend_Click"/>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1">
+                            <ItemsControl x:Name="FriendsList" ItemTemplate="{StaticResource FriendCardTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+
+                            <TextBlock x:Name="NoFriendsText" Text="Пока нет друзей — добавьте первого выше 👆"
+                                       Foreground="{StaticResource MutedTextBrush}" FontSize="15"
+                                       HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed"/>
+                        </Grid>
+                    </Grid>
+
+                    <!-- ================= МАСТЕРСКАЯ (МОДЫ 1.21.4 Fabric, Modrinth) ================= -->
+                    <Grid x:Name="PageWorkshop" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,20">
+                            <TextBox x:Name="ModSearchBox" Style="{StaticResource SearchTextBoxStyle}" Tag="Поиск модов (например: sodium)" Width="320"
+                 KeyDown="ModSearchBox_KeyDown"/>
+                            <Button Content="Искать" Style="{StaticResource AccentButtonStyle}" Height="40" Margin="10,0,0,0" Click="BtnSearchMods_Click"/>
+                            <Button x:Name="BtnInstalledMods" Content="📦 Установленные" Style="{StaticResource AccentButtonStyle}"
+                Background="#333" Height="40" Margin="10,0,0,0" Click="BtnInstalledMods_Click"/>
+                            <TextBlock x:Name="ModsStatusText" Text="" Foreground="{StaticResource MutedTextBrush}" FontSize="13"
+                   VerticalAlignment="Center" Margin="15,0,0,0"/>
+                        </StackPanel>
+
+                        <!-- Список модов из Modrinth -->
+                        <Grid Grid.Row="1" x:Name="SearchModsPanel">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="ModsList" ItemTemplate="{StaticResource ModCardTemplate}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <TextBlock x:Name="NoModsText" Text="Введите название мода и нажмите «Искать» — например «sodium» или «iris» 🔍"
+                   Foreground="{StaticResource MutedTextBrush}" FontSize="15"
+                   HorizontalAlignment="Left" VerticalAlignment="Top" TextWrapping="Wrap" Width="500" Visibility="Collapsed"/>
+                        </Grid>
+
+                        <!-- Список УСТАНОВЛЕННЫХ модов -->
+                        <Grid Grid.Row="1" x:Name="InstalledModsPanel" Visibility="Collapsed">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="InstalledModsList" ItemTemplate="{StaticResource InstalledModCardTemplate}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <TextBlock x:Name="NoInstalledModsText" Text="Пока нет установленных модов — скачайте что-нибудь из мастерской 📦"
+                   Foreground="{StaticResource MutedTextBrush}" FontSize="15"
+                   HorizontalAlignment="Left" VerticalAlignment="Top" TextWrapping="Wrap" Width="500" Visibility="Collapsed"/>
+                        </Grid>
+                    </Grid>
+
+                    <!-- ================= СКИНЫ (оффлайн-превью) ================= -->
+                    <Grid x:Name="PageSkins" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="300"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 3D превью -->
+                        <Border Grid.Column="0" Background="{StaticResource CardBrush}" CornerRadius="15" Margin="0,0,16,0">
+                            <Grid>
+                                <Viewport3D x:Name="SkinViewport">
+                                    <Viewport3D.Camera>
+                                        <PerspectiveCamera Position="0,0,3.2" LookDirection="0,0,-1"
+                                                           UpDirection="0,1,0" FieldOfView="45"/>
+                                    </Viewport3D.Camera>
+
+                                    <ModelVisual3D>
+                                        <ModelVisual3D.Content>
+                                            <Model3DGroup>
+                                                <AmbientLight Color="#B0B0B0"/>
+                                                <DirectionalLight Color="#FFFFFF" Direction="-0.4,-0.6,-1"/>
+                                            </Model3DGroup>
+                                        </ModelVisual3D.Content>
+                                    </ModelVisual3D>
+
+                                    <ModelVisual3D x:Name="SkinModelVisual">
+                                        <ModelVisual3D.Transform>
+                                            <RotateTransform3D>
+                                                <RotateTransform3D.Rotation>
+                                                    <AxisAngleRotation3D x:Name="SkinRotateTransform" Axis="0,1,0" Angle="0"/>
+                                                </RotateTransform3D.Rotation>
+                                            </RotateTransform3D>
+                                        </ModelVisual3D.Transform>
+                                    </ModelVisual3D>
+                                </Viewport3D>
+
+                                <TextBlock x:Name="SkinNoText" Text="Скин не загружен"
+                                           Foreground="{StaticResource MutedTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Панель управления -->
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Скины (оффлайн)" Foreground="White" FontSize="20" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                            <Border Background="{StaticResource CardBrush}" CornerRadius="10" Padding="10" Margin="0,0,0,12">
+                                <Image x:Name="SkinFlatImage" Height="128" Stretch="Uniform"
+                                       RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                            </Border>
+
+                            <Button Content="Загрузить скин…" Style="{StaticResource AccentButtonStyle}" Height="40" Margin="0,0,0,8" Click="BtnLoadSkin_Click"/>
+                            <Button Content="Повернуть модель ⟳" Style="{StaticResource AccentButtonStyle}" Background="#333" Height="40" Click="BtnRotateSkin_Click"/>
+
+                            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,14,0,0"
+                                       Text="Скин хранится локально (skin.png). В оффлайн-режиме ваниль не подгружает скин с сервера — для отображения в самой игре нужен клиентский мод скинов."/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ================= СТАТИСТИКА / АКТИВНОСТЬ ================= -->
+                    <Grid x:Name="PageStats" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="Статистика и активность" Foreground="White"
+                                       FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+
+                            <UniformGrid Columns="2" Rows="2">
+                                <Border Style="{StaticResource CardStyle}" Margin="6">
+                                    <StackPanel>
+                                        <TextBlock Text="НАИГРАНО" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                                        <TextBlock x:Name="StatPlaytimeText" Text="0 мин"
+                                                   Foreground="White" FontSize="24" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource CardStyle}" Margin="6">
+                                    <StackPanel>
+                                        <TextBlock Text="ЗАПУСКОВ" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                                        <TextBlock x:Name="StatLaunchCountText" Text="0"
+                                                   Foreground="White" FontSize="24" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource CardStyle}" Margin="6">
+                                    <StackPanel>
+                                        <TextBlock Text="ПОСЛЕДНИЙ ВХОД" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                                        <TextBlock x:Name="StatLastLoginText" Text="—"
+                                                   Foreground="White" FontSize="18" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource CardStyle}" Margin="6">
+                                    <StackPanel>
+                                        <TextBlock Text="ЛИЦЕНЗИЯ / ПОДПИСКА" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                                        <TextBlock x:Name="StatLicenseText" Text="Проверка…"
+                                                   Foreground="{StaticResource MutedTextBrush}" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- ================= НОВОСТИ ================= -->
+                    <Grid x:Name="PageNews" Visibility="Collapsed">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock x:Name="NewsVersionText" Text="Загрузка…"
+                                           Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,14"/>
+
+                                <Border CornerRadius="15" ClipToBounds="True" Margin="0,0,0,16"
+                                        Background="{StaticResource CardBrush}">
+                                    <Image x:Name="NewsImage" Stretch="Uniform" MaxHeight="360"
+                                           Visibility="Collapsed"/>
+                                </Border>
+
+                                <Border Style="{StaticResource CardStyle}">
+                                    <TextBlock x:Name="NewsBodyText" Foreground="#DDDDDD"
+                                               FontSize="15" LineHeight="24" TextWrapping="Wrap"/>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- ================= ПРОФИЛЬ ================= -->
+                    <Grid x:Name="PageProfile" Visibility="Collapsed">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel MaxWidth="560" HorizontalAlignment="Left">
+
+                                <!-- Карточка профиля -->
+                                <Border Style="{StaticResource CardStyle}" Padding="25" Margin="0,0,0,20">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Grid>
+                                            <Border Width="90" Height="90" CornerRadius="14" Background="#4CAF50">
+                                                <Grid>
+                                                    <TextBlock x:Name="ProfileAvatarLetter" Text="M" Foreground="White" FontSize="40" FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <Border CornerRadius="14">
+                                                        <Border.Background>
+                                                            <ImageBrush x:Name="ProfileAvatarBrush" Stretch="UniformToFill"/>
+                                                        </Border.Background>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+
+                                        <StackPanel Margin="20,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock x:Name="ProfilePageNameText" Text="MrDarko" Foreground="White" FontSize="22" FontWeight="Bold"/>
+                                            <TextBlock x:Name="ProfilePageRoleText" Text="User" Foreground="{StaticResource MutedTextBrush}" FontSize="13" Margin="0,2,0,10"/>
+                                            <Button Content="Сменить аватарку" Style="{StaticResource AccentButtonStyle}" Height="36" Padding="15,0"
+                                HorizontalAlignment="Left" Click="BtnChangeAvatar_Click"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Карточка ОЗУ -->
+                                <Border Style="{StaticResource CardStyle}" Padding="25" Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,12">
+                                            <TextBlock Text="Выделенная память (ОЗУ)" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                                            <TextBlock x:Name="RamValueText" Text="4096 МБ" Foreground="{StaticResource MutedTextBrush}" FontSize="14"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <Slider x:Name="RamSlider" Minimum="2048" Maximum="16384" Value="4096"
+                            TickFrequency="1024" IsSnapToTickEnabled="True"
+                            ValueChanged="RamSlider_ValueChanged"/>
+
+                                        <Grid Margin="0,6,0,0">
+                                            <TextBlock Text="2 ГБ" Foreground="{StaticResource MutedTextBrush}" FontSize="11" HorizontalAlignment="Left"/>
+                                            <TextBlock Text="16 ГБ" Foreground="{StaticResource MutedTextBrush}" FontSize="11" HorizontalAlignment="Right"/>
+                                        </Grid>
+
+                                        <TextBlock Text="Рекомендуем 4-8 ГБ. Настройка применяется при следующем запуске игры."
+                               Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,12,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Карточка НАСТРОЙКИ ЗАПУСКА -->
+                                <Border Style="{StaticResource CardStyle}" Padding="25">
+                                    <StackPanel>
+                                        <TextBlock Text="Настройки лаунчера" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
+
+                                        <!-- Тумблер трей / закрытие -->
+                                        <Grid Margin="0,0,0,18">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="При запуске игры" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Выкл — закрывать лаунчер · Вкл — сворачивать в трей"
+                                                           Foreground="{StaticResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <CheckBox x:Name="TrayToggle" Style="{StaticResource ToggleSwitchStyle}"
+                                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                      Checked="TrayToggle_Changed" Unchecked="TrayToggle_Changed"/>
+                                        </Grid>
+
+                                        <!-- Кнопки папка / кэш -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="📁 Открыть папку игры" Style="{StaticResource AccentButtonStyle}"
+                                                    Background="#333" Height="40" Click="BtnOpenGameFolder_Click"/>
+                                            <Button Content="🧹 Очистить кэш" Style="{StaticResource AccentButtonStyle}"
+                                                    Height="40" Margin="10,0,0,0" Click="BtnClearCache_Click"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                </Grid>
+
+                <!-- ================= ЭКРАН ЗАГРУЗКИ ================= -->
+                <Grid x:Name="ScreenDownload" Grid.Column="1" Visibility="Collapsed" Background="#101010">
+                    <StackPanel VerticalAlignment="Center" Margin="0,40,0,0" Width="500">
+                        <Border Height="140" Margin="10,0,10,10" CornerRadius="15">
+                            <Border.Background>
+                                <ImageBrush ImageSource="/backgroundMC.png" Stretch="UniformToFill"/>
+                            </Border.Background>
+                            <Grid>
+                                <!-- Лёгкое затемнение, чтобы текст читался на картинке -->
+                                <Border Background="#66000000" CornerRadius="15"/>
+
+                                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="15" Orientation="Horizontal">
+                                    <Border Background="{StaticResource ********}" CornerRadius="8" Padding="5">
+                                        <TextBlock Text="📜" FontSize="20"/>
+                                    </Border>
+                                    <TextBlock Text="1.21.4 Fabric" Foreground="White" FontSize="28" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <Button Content="✕ Отмена" Background="Transparent" Foreground="White" BorderThickness="0" Cursor="Hand"
+                        FontSize="17" FontWeight="SemiBold"
+                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12" Click="BtnCancelDownload_Click"/>
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="20,10,20,5">
+                            <TextBlock x:Name="LoadingText" Text="Загрузочка.." Foreground="White" FontSize="14" HorizontalAlignment="Left" Opacity="0.8"/>
+                            <TextBlock x:Name="CurrentFileText" Text="Проверка файлов" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <Border Background="#333333" Height="40" CornerRadius="10" Margin="20,5,20,0">
+                            <Grid>
+                                <Border x:Name="ProgressBarFill" Background="{StaticResource ********}" HorizontalAlignment="Left" Width="0" CornerRadius="10"/>
+                                <TextBlock x:Name="ProgressPercentText" Text="0 %" Foreground="White" FontWeight="Bold" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,0,0,0"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- ================= ЭКРАН ВХОДА ================= -->
+            <Border x:Name="ScreenLoginWrapper" Background="#101010" CornerRadius="25" Panel.ZIndex="5">
+
+                <!-- Анимации свечения: вращение лучей, пульсация и плавная смена цвета ядра -->
+                <Border.Triggers>
+                    <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <!-- медленное вращение лучей -->
+                                <DoubleAnimation Storyboard.TargetName="GlowRaysGroup"
+                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                 From="0" To="360" Duration="0:0:45" RepeatBehavior="Forever"/>
+
+                                <!-- дыхание ядра -->
+                                <DoubleAnimation Storyboard.TargetName="GlowCore"
+                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                 From="0.92" To="1.10" Duration="0:0:4"
+                                                 AutoReverse="True" RepeatBehavior="Forever">
+                                    <DoubleAnimation.EasingFunction>
+                                        <SineEase EasingMode="EaseInOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation Storyboard.TargetName="GlowCore"
+                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                 From="0.92" To="1.10" Duration="0:0:4"
+                                                 AutoReverse="True" RepeatBehavior="Forever">
+                                    <DoubleAnimation.EasingFunction>
+                                        <SineEase EasingMode="EaseInOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+
+                                <!-- плавная смена цвета ядра -->
+                                <ColorAnimationUsingKeyFrames Storyboard.TargetName="GlowCore"
+                                    Storyboard.TargetProperty="(Shape.Fill).(RadialGradientBrush.GradientStops)[1].(GradientStop.Color)"
+                                    Duration="0:0:16" RepeatBehavior="Forever">
+                                    <LinearColorKeyFrame KeyTime="0:0:0"  Value="#8A2BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:4"  Value="#2B7BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:8"  Value="#21D6C0"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:12" Value="#E2497F"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:16" Value="#8A2BE2"/>
+                                </ColorAnimationUsingKeyFrames>
+                                <ColorAnimationUsingKeyFrames Storyboard.TargetName="GlowCore"
+                                    Storyboard.TargetProperty="(Shape.Fill).(RadialGradientBrush.GradientStops)[2].(GradientStop.Color)"
+                                    Duration="0:0:16" RepeatBehavior="Forever">
+                                    <LinearColorKeyFrame KeyTime="0:0:0"  Value="#008A2BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:4"  Value="#002B7BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:8"  Value="#0021D6C0"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:12" Value="#00E2497F"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:16" Value="#008A2BE2"/>
+                                </ColorAnimationUsingKeyFrames>
+
+                                <!-- гало вокруг ядра -->
+                                <ColorAnimationUsingKeyFrames Storyboard.TargetName="GlowHalo"
+                                    Storyboard.TargetProperty="(Shape.Fill).(RadialGradientBrush.GradientStops)[0].(GradientStop.Color)"
+                                    Duration="0:0:16" RepeatBehavior="Forever">
+                                    <LinearColorKeyFrame KeyTime="0:0:0"  Value="#598A2BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:4"  Value="#592B7BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:8"  Value="#5921D6C0"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:12" Value="#59E2497F"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:16" Value="#598A2BE2"/>
+                                </ColorAnimationUsingKeyFrames>
+                                <ColorAnimationUsingKeyFrames Storyboard.TargetName="GlowHalo"
+                                    Storyboard.TargetProperty="(Shape.Fill).(RadialGradientBrush.GradientStops)[1].(GradientStop.Color)"
+                                    Duration="0:0:16" RepeatBehavior="Forever">
+                                    <LinearColorKeyFrame KeyTime="0:0:0"  Value="#008A2BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:4"  Value="#002B7BE2"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:8"  Value="#0021D6C0"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:12" Value="#00E2497F"/>
+                                    <LinearColorKeyFrame KeyTime="0:0:16" Value="#008A2BE2"/>
+                                </ColorAnimationUsingKeyFrames>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Border.Triggers>
+
+                <Grid>
+                    <!-- ===== СВЕТЯЩЕЕСЯ ПЯТНО ПО ЦЕНТРУ ===== -->
+                    <Grid Width="440" Height="440" HorizontalAlignment="Center" VerticalAlignment="Center"
+                          IsHitTestVisible="False" Panel.ZIndex="0">
+
+                        <!-- лучи (6 прямоугольников = 12 лучей), вращаются вокруг центра -->
+                        <Grid x:Name="GlowRaysGroup" RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform>
+                                <RotateTransform Angle="0"/>
+                            </Grid.RenderTransform>
+
+                            <Rectangle Style="{StaticResource GlowRayStyle}">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Offset="0"   Color="#008A2BE2"/>
+                                        <GradientStop Offset="0.5" Color="#8A2BE2"/>
+                                        <GradientStop Offset="1"   Color="#008A2BE2"/>
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                                <Rectangle.RenderTransform>
+                                    <RotateTransform Angle="0"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+
+                            <Rectangle Style="{StaticResource GlowRayStyle}" Opacity="0.34" Width="10">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Offset="0"   Color="#008A2BE2"/>
+                                        <GradientStop Offset="0.5" Color="#8A2BE2"/>
+                                        <GradientStop Offset="1"   Color="#008A2BE2"/>
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                                <Rectangle.RenderTransform>
+                                    <RotateTransform Angle="30"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+
+                            <Rectangle Style="{StaticResource GlowRayStyle}" Opacity="0.42" Width="12">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Offset="0"   Color="#008A2BE2"/>
+                                        <GradientStop Offset="0.5" Color="#8A2BE2"/>
+                                        <GradientStop Offset="1"   Color="#008A2BE2"/>
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                                <Rectangle.RenderTransform>
+                                    <RotateTransform Angle="60"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+
+                            <Rectangle Style="{StaticResource GlowRayStyle}">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Offset="0"   Color="#008A2BE2"/>
+                                        <GradientStop Offset="0.5" Color="#8A2BE2"/>
+                                        <GradientStop Offset="1"   Color="#008A2BE2"/>
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                                <Rectangle.RenderTransform>
+                                    <RotateTransform Angle="90"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+
+                            <Rectangle Style="{StaticResource GlowRayStyle}" Opacity="0.34" Width="10">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Offset="0"   Color="#008A2BE2"/>
+                                        <GradientStop Offset="0.5" Color="#8A2BE2"/>
+                                        <GradientStop Offset="1"   Color="#008A2BE2"/>
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                                <Rectangle.RenderTransform>
+                                    <RotateTransform Angle="120"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+
+                            <Rectangle Style="{StaticResource GlowRayStyle}" Opacity="0.42" Width="12">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Offset="0"   Color="#008A2BE2"/>
+                                        <GradientStop Offset="0.5" Color="#8A2BE2"/>
+                                        <GradientStop Offset="1"   Color="#008A2BE2"/>
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                                <Rectangle.RenderTransform>
+                                    <RotateTransform Angle="150"/>
+                                </Rectangle.RenderTransform>
+                            </Rectangle>
+                        </Grid>
+
+                        <!-- широкое мягкое гало -->
+                        <Ellipse x:Name="GlowHalo" Width="380" Height="380"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Ellipse.Fill>
+                                <RadialGradientBrush>
+                                    <GradientStop Offset="0" Color="#598A2BE2"/>
+                                    <GradientStop Offset="1" Color="#008A2BE2"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                            <Ellipse.Effect>
+                                <BlurEffect Radius="60"/>
+                            </Ellipse.Effect>
+                        </Ellipse>
+
+                        <!-- ядро пятна -->
+                        <Ellipse x:Name="GlowCore" Width="230" Height="230"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center"
+                                 RenderTransformOrigin="0.5,0.5">
+                            <Ellipse.Fill>
+                                <RadialGradientBrush>
+                                    <GradientStop Offset="0"    Color="#F2FFFFFF"/>
+                                    <GradientStop Offset="0.38" Color="#8A2BE2"/>
+                                    <GradientStop Offset="1"    Color="#008A2BE2"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                            <Ellipse.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Ellipse.RenderTransform>
+                            <Ellipse.Effect>
+                                <BlurEffect Radius="34"/>
+                            </Ellipse.Effect>
+                        </Ellipse>
+                    </Grid>
+
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="350" Panel.ZIndex="1">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,30">
+                            <Image Source="logo.png" Width="40" Height="40" Stretch="Uniform" Margin="0,0,10,0"/>
+                            <TextBlock Text="Dark Visuals" Foreground="White" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="Привет!" Foreground="White" FontSize="26" HorizontalAlignment="Center" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <TextBlock Text="Введи логин и пароль" Foreground="White" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,30" Opacity="0.8"/>
+
+                        <TextBox x:Name="LoginBox" Background="{StaticResource CardBrush}" Foreground="White" BorderThickness="0" Padding="15" Margin="25,0,25,15" FontSize="16" Text="Login"
+                             KeyDown="LoginBox_KeyDown">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+
+                        <Grid Margin="25,0,25,10">
+                            <PasswordBox x:Name="PassBox" Background="{StaticResource CardBrush}" Foreground="White" BorderThickness="0" Padding="15" FontSize="16" PasswordChar="•"
+                                     KeyDown="PassBox_KeyDown" PasswordChanged="PassBox_PasswordChanged">
+                                <PasswordBox.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="8"/>
+                                    </Style>
+                                </PasswordBox.Resources>
+                            </PasswordBox>
+                            <TextBlock x:Name="PassPlaceholder" Text="Password" Foreground="#666" FontSize="16"
+                                   Margin="15,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                   IsHitTestVisible="False"/>
+                        </Grid>
+
+                        <TextBlock x:Name="LoginErrorText" Foreground="#E05555" FontSize="13" HorizontalAlignment="Center" Margin="25,0,25,15" TextWrapping="Wrap" TextAlignment="Center" Visibility="Collapsed"/>
+
+                        <Button x:Name="BtnLogin" Content="Войти" Style="{StaticResource AccentButtonStyle}" Padding="25,12" FontSize="18" Margin="25,0,25,0" Click="BtnLogin_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ================= ЭКРАН НЕАКТУАЛЬНОЙ ВЕРСИИ ================= -->
+            <Border x:Name="ScreenUpdateRequired" Background="#101010" CornerRadius="25" Panel.ZIndex="20" Visibility="Collapsed">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="380">
+                    <TextBlock Text="⚠️" FontSize="60" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                    <TextBlock Text="Требуется обновление" Foreground="White" FontSize="26" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <TextBlock Text="Версия вашего загрузчика устарела. Скачайте новую версию, чтобы продолжить."
+                               Foreground="#AAAAAA" FontSize="15" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,25"/>
+
+                    <Border Background="{StaticResource CardBrush}" CornerRadius="10" Padding="15" Margin="0,0,0,25">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                <TextBlock Text="Установлена" Foreground="#888" FontSize="12" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="CurrentVersionText" Text="-" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                <TextBlock Text="Требуется" Foreground="#888" FontSize="12" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="RequiredVersionText" Text="-" Foreground="{StaticResource ********}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Button Content="Закрыть" Style="{StaticResource AccentButtonStyle}" Padding="25,12" FontSize="16" Click="BtnClose_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

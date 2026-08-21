@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWPF>true</UseWPF>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ApplicationIcon>logo.ico</ApplicationIcon>
+		<!-- ВОТ ЭТУ СТРОЧКУ МЫ ДОБАВИЛИ -->
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="backgroundMC.png" />
+	  <None Remove="logo.png" />
+	  <None Remove="home.png" />
+	  <None Remove="profile.png" />
+	  <None Remove="skins.png" />
+	  <None Remove="statistics.png" />
+	  <None Remove="version.png" />
+	  <None Remove="friends.png" />
+	  <None Remove="workshop.png" />
+	  <None Remove="news.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="logo.ico" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CmlLib.Core" Version="4.0.6" />
+    <PackageReference Include="Obfuscar" Version="3.0.0-beta.18">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.Management" Version="10.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="backgroundMC.png" />
+    <Resource Include="logo.png" />
+    <Resource Include="home.png" />
+    <Resource Include="profile.png" />
+    <Resource Include="skins.png" />
+    <Resource Include="statistics.png" />
+    <Resource Include="version.png" />
+    <Resource Include="friends.png" />
+    <Resource Include="workshop.png" />
+    <Resource Include="news.png" />
+    <Resource Include="play.png" />
+  </ItemGroup>
+
+</Project>
