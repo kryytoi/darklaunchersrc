@@ -32,6 +32,21 @@
             <!-- Тень для акцентной кнопки -->
             <DropShadowEffect x:Key="AccentGlowEffect" Color="#A855F7" BlurRadius="18" ShadowDepth="0" Opacity="0.55"/>
 
+            <!-- Градиент для заголовков (тёмно-фиолетовый -> яркий) -->
+            <LinearGradientBrush x:Key="GradTitleBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Offset="0" Color="#C084FC"/>
+                <GradientStop Offset="1" Color="#7C3AED"/>
+            </LinearGradientBrush>
+
+            <!-- Свечение логотипа -->
+            <DropShadowEffect x:Key="LogoGlowEffect" Color="#8A2BE2" BlurRadius="22" ShadowDepth="0" Opacity="0.7"/>
+
+            <!-- Градиентная рамка аватара -->
+            <LinearGradientBrush x:Key="AvatarRingBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Offset="0" Color="#A855F7"/>
+                <GradientStop Offset="1" Color="#22D3EE"/>
+            </LinearGradientBrush>
+
             <!-- ===================== КНОПКИ МЕНЮ (слева) ===================== -->
             <Style x:Key="MenuButtonStyle" TargetType="{x:Type RadioButton}">
                 <Setter Property="Background" Value="Transparent"/>
@@ -444,15 +459,17 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Border Width="40" Height="40" CornerRadius="8" Background="#4CAF50">
-                                <Grid>
-                                    <TextBlock x:Name="SidebarAvatarLetter" Text="M" Foreground="White" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <Border CornerRadius="8">
-                                        <Border.Background>
-                                            <ImageBrush x:Name="SidebarAvatarBrush" Stretch="UniformToFill"/>
-                                        </Border.Background>
-                                    </Border>
-                                </Grid>
+                            <Border Width="46" Height="46" CornerRadius="9" BorderThickness="2" BorderBrush="{StaticResource AvatarRingBrush}">
+                                <Border Width="42" Height="42" CornerRadius="8" Background="#4CAF50">
+                                    <Grid>
+                                        <TextBlock x:Name="SidebarAvatarLetter" Text="M" Foreground="White" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Border CornerRadius="8">
+                                            <Border.Background>
+                                                <ImageBrush x:Name="SidebarAvatarBrush" Stretch="UniformToFill"/>
+                                            </Border.Background>
+                                        </Border>
+                                    </Grid>
+                                </Border>
                             </Border>
                             <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal">
@@ -504,13 +521,13 @@
                                         </Border>
                                         <Image Source="logo.png" Width="90" Height="90" Stretch="Uniform"
                                                HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0"
-                                               Opacity="0.95"/>
+                                               Opacity="0.95" Effect="{StaticResource LogoGlowEffect}"/>
                                     </Grid>
                                 </Border>
 
                                 <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
                                     <TextBlock Text="Добро пожаловать в" Foreground="White" FontSize="26" FontWeight="Bold"/>
-                                    <TextBlock Text="Dark Visuals" Foreground="{StaticResource ********}" FontSize="30" FontWeight="Bold" Margin="0,0,0,15"/>
+                                    <TextBlock Text="Dark Visuals" Foreground="{StaticResource GradTitleBrush}" FontSize="30" FontWeight="Bold" Margin="0,0,0,15"/>
                                     <StackPanel Orientation="Horizontal">
                                         <Button x:Name="BtnPlay" Style="{StaticResource AccentButtonStyle}" FontSize="18" Padding="25,10" Click="BtnLaunchFabric_Click">
                                             <StackPanel Orientation="Horizontal">
@@ -875,7 +892,7 @@
                 </Grid>
 
                 <!-- ================= ЭКРАН ЗАГРУЗКИ ================= -->
-                <Grid x:Name="ScreenDownload" Grid.Column="1" Visibility="Collapsed" Background="#101010">
+                <Grid x:Name="ScreenDownload" Grid.Column="1" Visibility="Collapsed" Background="{StaticResource WindowBgBrush}">
                     <StackPanel VerticalAlignment="Center" Margin="0,40,0,0" Width="500">
                         <Border Height="140" Margin="10,0,10,10" CornerRadius="15">
                             <Border.Background>
@@ -903,9 +920,19 @@
                             <TextBlock x:Name="CurrentFileText" Text="Проверка файлов" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Right"/>
                         </Grid>
 
-                        <Border Background="#333333" Height="40" CornerRadius="10" Margin="20,5,20,0">
+                        <Border Background="#1A1A1A" Height="44" CornerRadius="10" Margin="20,5,20,0" BorderBrush="#2A2A2A" BorderThickness="1">
                             <Grid>
-                                <Border x:Name="ProgressBarFill" Background="{StaticResource ********}" HorizontalAlignment="Left" Width="0" CornerRadius="10"/>
+                                <Border x:Name="ProgressBarFill" HorizontalAlignment="Left" Width="0" CornerRadius="10" Margin="1">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Offset="0" Color="#A855F7"/>
+                                            <GradientStop Offset="1" Color="#7C3AED"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#7C3AED" BlurRadius="14" ShadowDepth="0" Opacity="0.6"/>
+                                    </Border.Effect>
+                                </Border>
                                 <TextBlock x:Name="ProgressPercentText" Text="0 %" Foreground="White" FontWeight="Bold" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,0,0,0"/>
                             </Grid>
                         </Border>

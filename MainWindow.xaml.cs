@@ -1,4 +1,4 @@
-﻿using CmlLib.Core;
+using CmlLib.Core;
 using CmlLib.Core.Auth;
 using CmlLib.Core.ProcessBuilder;
 using DarkVisualsLauncher1.Security;
@@ -149,6 +149,18 @@ namespace DarkVisualsLauncher1
         {
             System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12 | System.Net.SecurityProtocolType.Tls13;
             InitializeComponent();
+
+            // Плавное появление окна при запуске (fade-in + лёгкий подъём)
+            Opacity = 0;
+            Loaded += (_, _) =>
+            {
+                var fadeIn = new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromSeconds(0.4))
+                {
+                    EasingFunction = new System.Windows.Media.Animation.QuadraticEase
+                    { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
+                };
+                BeginAnimation(OpacityProperty, fadeIn);
+            };
 
             _dataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".darkvisuals");
             Directory.CreateDirectory(_dataFolder);
