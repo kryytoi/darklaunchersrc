@@ -492,18 +492,20 @@
                                     <Border.Background>
                                         <ImageBrush ImageSource="/backgroundMC.png" Stretch="UniformToFill"/>
                                     </Border.Background>
-                                    <Border Background="#33000000"/>
-                                    <Border CornerRadius="15">
-                                        <Border.Background>
-                                            <LinearGradientBrush StartPoint="1,0" EndPoint="0,0">
-                                                <GradientStop Offset="0" Color="#33000000"/>
-                                                <GradientStop Offset="0.4" Color="#00000000"/>
-                                            </LinearGradientBrush>
-                                        </Border.Background>
-                                    </Border>
-                                    <Image Source="logo.png" Width="90" Height="90" Stretch="Uniform"
-                                           HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0"
-                                           Opacity="0.95"/>
+                                    <Grid>
+                                        <Border Background="#33000000"/>
+                                        <Border>
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="1,0" EndPoint="0,0">
+                                                    <GradientStop Offset="0" Color="#33000000"/>
+                                                    <GradientStop Offset="0.4" Color="#00000000"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                        </Border>
+                                        <Image Source="logo.png" Width="90" Height="90" Stretch="Uniform"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0"
+                                               Opacity="0.95"/>
+                                    </Grid>
                                 </Border>
 
                                 <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
