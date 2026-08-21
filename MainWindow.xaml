@@ -16,6 +16,22 @@
             <SolidColorBrush x:Key="CardBrush" Color="#1C1C1C"/>
             <SolidColorBrush x:Key="MutedTextBrush" Color="#888888"/>
 
+            <!-- Градиентный фон окна (тёмно-фиолетовое свечение) -->
+            <RadialGradientBrush x:Key="WindowBgBrush">
+                <GradientStop Offset="0" Color="#2A1650"/>
+                <GradientStop Offset="0.45" Color="#181020"/>
+                <GradientStop Offset="1" Color="#0B0B0B"/>
+            </RadialGradientBrush>
+
+            <!-- Градиент для акцентной кнопки (Играть) -->
+            <LinearGradientBrush x:Key="AccentGradBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Offset="0" Color="#A855F7"/>
+                <GradientStop Offset="1" Color="#6D28D9"/>
+            </LinearGradientBrush>
+
+            <!-- Тень для акцентной кнопки -->
+            <DropShadowEffect x:Key="AccentGlowEffect" Color="#A855F7" BlurRadius="18" ShadowDepth="0" Opacity="0.55"/>
+
             <!-- ===================== КНОПКИ МЕНЮ (слева) ===================== -->
             <Style x:Key="MenuButtonStyle" TargetType="{x:Type RadioButton}">
                 <Setter Property="Background" Value="Transparent"/>
@@ -42,7 +58,14 @@
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource ********}"/>
-                                    <Setter TargetName="border" Property="Background" Value="#161616"/>
+                                    <Setter TargetName="border" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Offset="0" Color="#2A1650"/>
+                                                <GradientStop Offset="1" Color="#161616"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
                                 </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="border" Property="Background" Value="#1A1A1A"/>
@@ -63,16 +86,28 @@
                         <DropShadowEffect Color="Black" Direction="270" ShadowDepth="3" BlurRadius="14" Opacity="0.35"/>
                     </Setter.Value>
                 </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseDirectlyOver" Value="True">
+                        <Setter Property="BorderBrush" Value="#2A1650"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="Effect">
+                            <Setter.Value>
+                                <DropShadowEffect Color="#6D28D9" Direction="270" ShadowDepth="4" BlurRadius="22" Opacity="0.35"/>
+                            </Setter.Value>
+                        </Setter>
+                    </Trigger>
+                </Style.Triggers>
             </Style>
 
             <!-- ===================== АКЦЕНТНАЯ КНОПКА ===================== -->
             <Style x:Key="AccentButtonStyle" TargetType="Button">
-                <Setter Property="Background" Value="{StaticResource ********}"/>
+                <Setter Property="Background" Value="{StaticResource AccentGradBrush}"/>
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="BorderThickness" Value="0"/>
                 <Setter Property="FontWeight" Value="Bold"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Padding" Value="18,8"/>
+                <Setter Property="Effect" Value="{StaticResource AccentGlowEffect}"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -81,10 +116,10 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.92"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="bd" Property="Opacity" Value="0.7"/>
+                                    <Setter TargetName="bd" Property="Opacity" Value="0.75"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -108,6 +143,33 @@
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="bd" Property="Background" Value="#2A2A2A"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ===================== КНОПКИ УПРАВЛЕНИЯ ОКНОМ ===================== -->
+            <Style x:Key="WindowControlButtonStyle" TargetType="Button">
+                <Setter Property="Foreground" Value="#888"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="FontSize" Value="16"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Width" Value="32"/>
+                <Setter Property="Height" Value="28"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="#2A2A2A"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -338,12 +400,12 @@
 
     </Window.Resources>
 
-    <Border Background="#101010" CornerRadius="25">
+    <Border Background="{StaticResource WindowBgBrush}" CornerRadius="25">
         <Grid>
             <!-- Кнопки управления окном -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,15,20,0" Panel.ZIndex="10">
-                <Button Content="—" Foreground="#666" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Margin="0,0,15,0" Click="BtnMinimize_Click"/>
-                <Button Content="✕" Foreground="#666" Background="Transparent" BorderThickness="0" FontSize="16" FontWeight="Bold" Cursor="Hand" Click="BtnClose_Click"/>
+                <Button Content="—" Style="{StaticResource WindowControlButtonStyle}" Margin="0,0,12,0" Click="BtnMinimize_Click"/>
+                <Button Content="✕" Style="{StaticResource WindowControlButtonStyle}" Click="BtnClose_Click"/>
             </StackPanel>
 
             <Grid x:Name="MainUI" Visibility="Collapsed">
