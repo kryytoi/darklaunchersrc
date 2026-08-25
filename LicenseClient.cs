@@ -1,10 +1,12 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DarkVisualsLauncher1.Security
@@ -16,18 +18,24 @@ namespace DarkVisualsLauncher1.Security
 
     /// <summary>
     /// Скачивание зашифрованного darkvisuals.enc, расшифровка в память,
-    /// водяной знак — плюс НОВОЕ: запись session.json в run/darkvisuals/.
+    /// водяной знак — плюс запись session.json в run/darkvisuals/.
     ///
-    /// Раньше на этом всё заканчивалось: расшифрованный jar просто лежал
-    /// в mods/ и работал вечно на любой машине без единого обращения к
-    /// серверу — скопировать его другу было достаточно, чтобы обойти всю
-    /// защиту. Теперь мод сам (LicenseGuard.java на Java-стороне) читает
-    /// session.json при каждом запуске игры и переспрашивает /api/verify.
-    /// Скопированный jar без валидного session.json от ТВОЕГО лаунчера
-    /// просто не активирует модули.
+    /// ВАЖНО (почему раньше висел "вечно загрузка darkvisuals"):
+    /// HttpClient.Timeout НЕ распространяется на чтение тела ответа, когда
+    /// используется HttpCompletionOption.ResponseHeadersRead. Таймаут срабатывал
+    /// только до получения заголовков, а ReadAsByteArrayAsync() по зависшему
+    /// коннекту ждала вечно, без исключения и без прогресса.
+    /// Теперь: потоковая запись в файл, прогресс в UI, stall-таймаут
+    /// (нет данных 45 сек) и общий бюджет (15 мин), поддержка кнопки "Отмена".
     /// </summary>
     internal sealed class LicenseClient
     {
+        /// <summary>Нет данных из сети дольше этого времени => ошибка "зависло".</summary>
+        private const int StallTimeoutMs = 45_000;
+
+        /// <summary>Общий бюджет на скачивание одного файла.</summary>
+        private static readonly TimeSpan DownloadBudget = TimeSpan.FromMinutes(15);
+
         private readonly HttpClient _http;
         private readonly string _serverBaseUrl;
 
@@ -43,7 +51,9 @@ namespace DarkVisualsLauncher1.Security
             string sessionToken,
             string modsFolder,
             string mcRunDirectory,
-            Action<string> reportStatus)
+            Action<string> reportStatus,
+            Action<double, long, long>? reportProgress = null,
+            CancellationToken userToken = default)
         {
             reportStatus("Проверка лицензии...");
 
@@ -54,13 +64,13 @@ namespace DarkVisualsLauncher1.Security
                 {
                     var req = new HttpRequestMessage(HttpMethod.Post, $"{_serverBaseUrl}/api/mod-key");
                     req.Content = JsonContent.Create(new { login, hwid, sessionToken });
-                    resp = await _http.SendAsync(req);
+                    resp = await _http.SendAsync(req, userToken);
                     break;
                 }
                 catch (HttpRequestException) when (attempt < 3)
                 {
                     reportStatus($"Сервер просыпается... попытка {attempt + 1}/3");
-                    await Task.Delay(4000);
+                    await Task.Delay(4000, userToken);
                 }
             }
             if (resp == null)
@@ -78,39 +88,200 @@ namespace DarkVisualsLauncher1.Security
                 throw new Exception(reason);
             }
 
-            var keyInfo = await resp.Content.ReadFromJsonAsync<KeyResponse>();
-            byte[] aesKey = Convert.FromBase64String(keyInfo!.KeyBase64);
-            byte[] aesIv = Convert.FromBase64String(keyInfo.IvBase64);
-
-            reportStatus("Загрузка: darkvisuals");
-            byte[] encrypted;
-            using (var modResp = await _http.GetAsync(keyInfo.ModUrl, HttpCompletionOption.ResponseHeadersRead))
+            KeyResponse? keyInfo;
+            try
             {
-                modResp.EnsureSuccessStatusCode();
-                encrypted = await modResp.Content.ReadAsByteArrayAsync();
-
-                long? expectedLength = modResp.Content.Headers.ContentLength;
-                if (expectedLength.HasValue && expectedLength.Value != encrypted.Length)
-                {
-                    throw new InvalidDataException(
-                        $"Файл darkvisuals.enc скачан не полностью: получено {encrypted.Length} байт, " +
-                        $"ожидалось {expectedLength.Value}. Проверь интернет-соединение и попробуй снова.");
-                }
+                keyInfo = await resp.Content.ReadFromJsonAsync<KeyResponse>();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Сервер лицензий вернул некорректный ответ (не удалось разобрать JSON). Попробуй позже.", ex);
             }
 
-            byte[] jarBytes = DecryptAes(encrypted, aesKey, aesIv);
-            jarBytes = AddWatermark(jarBytes, $"{login}|{hwid}|{DateTime.UtcNow:O}");
+            byte[] aesKey;
+            byte[] aesIv;
+            try
+            {
+                aesKey = Convert.FromBase64String(keyInfo!.KeyBase64);
+                aesIv = Convert.FromBase64String(keyInfo.IvBase64);
+            }
+            catch (FormatException ex)
+            {
+                throw new Exception("Сервер лицензий вернул некорректный AES-ключ/IV (не Base64). Попробуй позже.", ex);
+            }
 
-            string jarPath = Path.Combine(modsFolder, "darkvisuals.jar");
-            await WriteJarWithRetryAsync(jarPath, jarBytes);
+            if (string.IsNullOrWhiteSpace(keyInfo.ModUrl))
+                throw new Exception("Сервер лицензий не вернул адрес файла мода (ModUrl пуст).");
 
+            // ===== Скачивание .enc в файл с прогрессом и защитой от зависаний =====
+            reportStatus("Загрузка: darkvisuals");
+            string tempEncPath = Path.Combine(modsFolder, "darkvisuals.enc.tmp");
 
-            WriteSessionFile(mcRunDirectory, login, hwid, sessionToken, keyInfo.SessionTtlSeconds);
+            long expectedLength = 0;
+            try
+            {
+                await using (var tempFile = new FileStream(
+                                 tempEncPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    expectedLength = await DownloadWithProgressAsync(
+                        keyInfo.ModUrl, tempFile,
+                        (frac, received, total) =>
+                        {
+                            string mb = (received / 1048576.0).ToString("0.#");
+                            reportStatus(total > 0
+                                ? $"Загрузка: darkvisuals — {mb} МБ ({(int)(frac * 100)}%)"
+                                : $"Загрузка: darkvisuals — {mb} МБ");
+                            reportProgress?.Invoke(frac, received, total);
+                        },
+                        userToken);
+                }
 
-            return new ModDownloadResult { JarPath = jarPath };
+                if (expectedLength > 0 && new FileInfo(tempEncPath).Length != expectedLength)
+                {
+                    throw new InvalidDataException(
+                        $"Файл darkvisuals.enc скачан не полностью: получено {new FileInfo(tempEncPath).Length} байт, " +
+                        $"ожидалось {expectedLength}. Проверь интернет-соединение и попробуй снова.");
+                }
+            }
+            catch
+            {
+                TryDelete(tempEncPath);
+                throw;
+            }
+
+            userToken.ThrowIfCancellationRequested();
+            reportStatus("Расшифровка...");
+
+            try
+            {
+                byte[] encrypted = await File.ReadAllBytesAsync(tempEncPath, userToken);
+                byte[] jarBytes = DecryptAes(encrypted, aesKey, aesIv);
+                jarBytes = AddWatermark(jarBytes, $"{login}|{hwid}|{DateTime.UtcNow:O}");
+
+                string jarPath = Path.Combine(modsFolder, "darkvisuals.jar");
+                await WriteJarWithRetryAsync(jarPath, jarBytes, userToken);
+
+                WriteSessionFile(mcRunDirectory, login, hwid, sessionToken, keyInfo.SessionTtlSeconds);
+
+                return new ModDownloadResult { JarPath = jarPath };
+            }
+            finally
+            {
+                TryDelete(tempEncPath);
+            }
         }
 
-        private static async Task WriteJarWithRetryAsync(string jarPath, byte[] jarBytes)
+        public async Task DownloadFabricApiAsync(
+            string modsFolder,
+            Action<string> reportStatus,
+            Action<double, long, long>? reportProgress = null,
+            CancellationToken userToken = default)
+        {
+            reportStatus("Загрузка: fabric-api.jar");
+            string apiUrl = "https://github.com/FabricMC/fabric-api/releases/download/0.112.0+1.21.4/fabric-api-0.112.0+1.21.4.jar";
+
+            string target = Path.Combine(modsFolder, "fabric-api.jar");
+            string tmp = target + ".tmp";
+
+            try
+            {
+                await using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    await DownloadWithProgressAsync(apiUrl, fs,
+                        (frac, received, total) => reportProgress?.Invoke(frac, received, total),
+                        userToken);
+                }
+
+                if (File.Exists(target))
+                    File.SetAttributes(target, FileAttributes.Normal);
+                File.Move(tmp, target, overwrite: true);
+            }
+            catch
+            {
+                TryDelete(tmp);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Скачивает url в target-поток с прогрессом.
+        ///
+        /// Защита от двух типов зависаний, которые раньше вешали лаунчер навсегда:
+        ///  1) stall: больше StallTimeoutMs не приходит ни одного байта => TimeoutException;
+        ///  2) общий бюджет: DownloadBudget на весь файл => TimeoutException.
+        /// userToken — отмена пользователем (кнопка "Отмена"), пробрасывается как есть.
+        /// Возвращает Content-Length (0, если сервер его не указал).
+        /// </summary>
+        private async Task<long> DownloadWithProgressAsync(
+            string url,
+            Stream target,
+            Action<double, long, long> onProgress,
+            CancellationToken userToken)
+        {
+            using var budgetCts = CancellationTokenSource.CreateLinkedTokenSource(userToken);
+            budgetCts.CancelAfter(DownloadBudget);
+
+            // Фаза заголовков (DNS/TCP/TLS/редиректы) по-прежнему подчиняется
+            // общему HttpClient.Timeout (60 c) + нашему бюджету.
+            using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, budgetCts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(
+                    $"Не удалось скачать файл (сервер ответил {(int)response.StatusCode} {response.ReasonPhrase}). " +
+                    "Попробуй ещё раз через минуту.");
+            }
+
+            long? total = response.Content.Headers.ContentLength;
+            using var stream = await response.Content.ReadAsStreamAsync(budgetCts.Token);
+
+            var buffer = new byte[64 * 1024];
+            long received = 0;
+
+            while (true)
+            {
+                userToken.ThrowIfCancellationRequested();
+
+                // Каждый read подчиняется собственному stall-таймеру:
+                // если сеть молчит дольше StallTimeoutMs — падаем с понятной ошибкой,
+                // а не висим вечно (HttpClient.Timeout сюда не распространяется).
+                using var readCts = CancellationTokenSource.CreateLinkedTokenSource(budgetCts.Token);
+                readCts.CancelAfter(StallTimeoutMs);
+
+                int n;
+                try
+                {
+                    n = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), readCts.Token);
+                }
+                catch (OperationCanceledException) when (!budgetCts.IsCancellationRequested)
+                {
+                    throw new TimeoutException(
+                        $"Скачивание зависло: больше {StallTimeoutMs / 1000} секунд не приходит ни одного байта. " +
+                        "Проверь интернет-соединение (или VPN) и попробуй снова.");
+                }
+                catch (OperationCanceledException)
+                {
+                    if (userToken.IsCancellationRequested) throw; // отмена пользователем
+                    throw new TimeoutException("Скачивание прервано: превышено время загрузки.");
+                }
+
+                if (n <= 0)
+                    break;
+
+                await target.WriteAsync(buffer.AsMemory(0, n), budgetCts.Token);
+                received += n;
+                onProgress(total.HasValue ? (double)received / total.Value : double.NaN, received, total ?? 0);
+            }
+
+            return total ?? 0;
+        }
+
+        private static void TryDelete(string path)
+        {
+            try { if (File.Exists(path)) File.Delete(path); } catch { }
+        }
+
+        private static async Task WriteJarWithRetryAsync(string jarPath, byte[] jarBytes, CancellationToken userToken = default)
         {
             const int maxAttempts = 5;
 
@@ -124,16 +295,17 @@ namespace DarkVisualsLauncher1.Security
                     if (File.Exists(jarPath))
                         File.SetAttributes(jarPath, FileAttributes.Normal);
 
-                    await File.WriteAllBytesAsync(jarPath, jarBytes);
+                    await File.WriteAllBytesAsync(jarPath, jarBytes, userToken);
                     return; // успех
                 }
                 catch (Exception ex) when (
                     (ex is UnauthorizedAccessException || ex is IOException)
-                    && attempt < maxAttempts)
+                    && attempt < maxAttempts
+                    && !userToken.IsCancellationRequested)
                 {
                     // Файл ещё занят предыдущим java.exe/антивирусом — ждём и пробуем снова,
                     // вместо того чтобы сразу падать в краш-диалог.
-                    await Task.Delay(500);
+                    await Task.Delay(500, userToken);
                 }
             }
 
@@ -141,15 +313,7 @@ namespace DarkVisualsLauncher1.Security
             // увидел настоящую причину, если дело не в блокировке файла.
             if (File.Exists(jarPath))
                 File.SetAttributes(jarPath, FileAttributes.Normal);
-            await File.WriteAllBytesAsync(jarPath, jarBytes);
-        }
-
-        public async Task DownloadFabricApiAsync(string modsFolder, Action<string> reportStatus)
-        {
-            reportStatus("Загрузка: fabric-api.jar");
-            string apiUrl = "https://github.com/FabricMC/fabric-api/releases/download/0.112.0+1.21.4/fabric-api-0.112.0+1.21.4.jar";
-            byte[] apiBytes = await _http.GetByteArrayAsync(apiUrl);
-            await File.WriteAllBytesAsync(Path.Combine(modsFolder, "fabric-api.jar"), apiBytes);
+            await File.WriteAllBytesAsync(jarPath, jarBytes, userToken);
         }
 
         private static void WriteSessionFile(string mcRunDirectory, string login, string hwid, string sessionToken, int ttlSeconds)
@@ -184,7 +348,8 @@ namespace DarkVisualsLauncher1.Security
 
             if (data.Length % 16 != 0)
                 throw new InvalidDataException(
-                    $"Зашифрованный файл мода повреждён или скачан не полностью (размер {data.Length} байт не кратен 16).");
+                    $"Зашифрованный файл мода повреждён или скачан не полностью (размер {data.Length} байт не кратен 16). " +
+                    "Скорее всего, обрыв соединения при загрузке.");
 
             if (key == null || (key.Length != 16 && key.Length != 24 && key.Length != 32))
                 throw new InvalidDataException($"Некорректный AES-ключ от сервера лицензий (длина {key?.Length ?? 0} байт, ожидалось 16/24/32).");
@@ -203,7 +368,8 @@ namespace DarkVisualsLauncher1.Security
             {
                 throw new InvalidDataException(
                     "Не удалось расшифровать файл мода: ключ/IV не подходят к скачанному файлу. " +
-                    "Похоже на рассинхрон между сервером лицензий и файлом darkvisuals.enc, либо файл повреждён при скачивании.");
+                    "Похоже на рассинхрон между сервером лицензий и файлом darkvisuals.enc " +
+                    "(например, .enc обновили, а ключ выдаётся под старую версию), либо файл повреждён при скачивании.");
             }
         }
 
@@ -227,8 +393,10 @@ namespace DarkVisualsLauncher1.Security
             int endOfEocd = eocd + 22;
             var result = new byte[endOfEocd + comment.Length];
             Buffer.BlockCopy(jar, 0, result, 0, endOfEocd);
+
             result[eocd + 20] = (byte)(comment.Length & 0xFF);
             result[eocd + 21] = (byte)((comment.Length >> 8) & 0xFF);
+
             Buffer.BlockCopy(comment, 0, result, endOfEocd, comment.Length);
             return result;
         }
