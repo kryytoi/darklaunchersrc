@@ -1,4 +1,4 @@
-using CmlLib.Core;
+﻿using CmlLib.Core;
 using CmlLib.Core.Auth;
 using CmlLib.Core.ProcessBuilder;
 using DarkVisualsLauncher1.Security;
@@ -53,7 +53,7 @@ namespace DarkVisualsLauncher1
 
         private readonly string githubVersionUrl = "https://raw.githubusercontent.com/kryytoi/WDdwdw/refs/heads/main/Version.txt";
 
-        private const string CurrentLoaderVersion = "2";
+        private const string CurrentLoaderVersion = "3";
 
         private string _currentRole = "User";
         private string _currentLogin = string.Empty;
@@ -870,7 +870,7 @@ namespace DarkVisualsLauncher1
                 LoadingText.Text = "Готово!";
                 CurrentFileText.Text = "Запуск игры...";
 
-                
+
 
                 var process = await launcher.CreateProcessAsync(targetVersionName, launchOptions);
                 process.EnableRaisingEvents = true;
