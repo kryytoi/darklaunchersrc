@@ -171,6 +171,17 @@ namespace DarkVisualsLauncher1.Security
             }
         }
 
+        // Зеркала fabric-api: сначала наш CDN на Vercel (открыт в РФ,
+        // проверено живым запуском), потом официальные источники.
+        // GitHub-релизы из России часто не отвечают 60+ секунд,
+        // поэтому именно он идёт на второй позиции.
+        private static readonly string[] FabricApiMirrors =
+        {
+            "https://darkvisuals.vercel.app/static/fabric-api-0.112.0+1.21.4.jar",
+            "https://github.com/FabricMC/fabric-api/releases/download/0.112.0+1.21.4/fabric-api-0.112.0+1.21.4.jar",
+            "https://cdn.modrinth.com/data/P7dR8mSH/versions/kgg9d3no/fabric-api-0.112.0%2B1.21.4.jar",
+        };
+
         public async Task DownloadFabricApiAsync(
             string modsFolder,
             Action<string> reportStatus,
@@ -178,29 +189,46 @@ namespace DarkVisualsLauncher1.Security
             CancellationToken userToken = default)
         {
             reportStatus("Загрузка: fabric-api.jar");
-            string apiUrl = "https://github.com/FabricMC/fabric-api/releases/download/0.112.0+1.21.4/fabric-api-0.112.0+1.21.4.jar";
 
             string target = Path.Combine(modsFolder, "fabric-api.jar");
             string tmp = target + ".tmp";
 
-            try
+            Exception? lastError = null;
+            for (int i = 0; i < FabricApiMirrors.Length; i++)
             {
-                await using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                string apiUrl = FabricApiMirrors[i];
+                try
                 {
-                    await DownloadWithProgressAsync(apiUrl, fs,
-                        (frac, received, total) => reportProgress?.Invoke(frac, received, total),
-                        userToken);
-                }
+                    await using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        await DownloadWithProgressAsync(apiUrl, fs,
+                            (frac, received, total) => reportProgress?.Invoke(frac, received, total),
+                            userToken);
+                    }
 
-                if (File.Exists(target))
-                    File.SetAttributes(target, FileAttributes.Normal);
-                File.Move(tmp, target, overwrite: true);
+                    if (File.Exists(target))
+                        File.SetAttributes(target, FileAttributes.Normal);
+                    File.Move(tmp, target, overwrite: true);
+                    return; // успех
+                }
+                catch (OperationCanceledException)
+                {
+                    // Отмена пользователем — не прыгаем по зеркалам, выходим сразу.
+                    TryDelete(tmp);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    lastError = ex;
+                    TryDelete(tmp);
+                    reportStatus($"Зеркало {i + 1}/{FabricApiMirrors.Length} недоступно, пробуем следующее...");
+                }
             }
-            catch
-            {
-                TryDelete(tmp);
-                throw;
-            }
+
+            throw new Exception(
+                "Не удалось скачать fabric-api.jar ни с одного зеркала.\n" +
+                $"Последняя ошибка: {lastError?.Message}",
+                lastError);
         }
 
         /// <summary>
