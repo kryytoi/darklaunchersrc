@@ -53,7 +53,7 @@ namespace DarkVisualsLauncher1
 
         private readonly string githubVersionUrl = "https://raw.githubusercontent.com/kryytoi/WDdwdw/refs/heads/main/Version.txt";
 
-        private const string CurrentLoaderVersion = "3";
+        private const string CurrentLoaderVersion = "4";
 
         private string _currentRole = "User";
         private string _currentLogin = string.Empty;
@@ -91,6 +91,13 @@ namespace DarkVisualsLauncher1
 
         // ===== ЗАЩИТА МОДА =====
         private string? _protectedModPath;
+
+        // ===== ОТМЕНА ЗАПУСКА / СОСТОЯНИЕ ЭКРАНА ЗАГРУЗКИ =====
+        // CancellationTokenSource на время загрузки: кнопка "✕ Отмена" теперь
+        // реально отменяет скачивание (раньше просто прятала экран, а загрузка
+        // продолжалась в фоне).
+        private CancellationTokenSource? _launchCts;
+        private bool _onDownloadScreen = false;
 
         // ===== НОВОЕ: статистика =====
         private string _statsFilePath = string.Empty;
@@ -818,6 +825,14 @@ namespace DarkVisualsLauncher1
 
         private async void BtnLaunchFabric_Click(object sender, RoutedEventArgs e)
         {
+            // Каждый запуск — свежий токен отмены; если предыдущая загрузка
+            // ещё «дописывает файлы» в фоне — сначала её останавливаем.
+            _launchCts?.Cancel();
+            _launchCts?.Dispose();
+            _launchCts = new CancellationTokenSource();
+            CancellationToken token = _launchCts.Token;
+
+            _onDownloadScreen = true;
             SwitchScreens(PageHome, ScreenDownload);
 
             try
@@ -832,10 +847,10 @@ namespace DarkVisualsLauncher1
 
                 LoadingText.Text = "Установка движка...";
                 CurrentFileText.Text = "Fabric Loader";
-                await InstallFabricAsync(mcPath, mcVersion, fabricLoaderVersion);
+                await InstallFabricAsync(mcPath, mcVersion, fabricLoaderVersion, token);
 
                 LoadingText.Text = "Установка модификаций...";
-                await DownloadModsAsync(mcPath);
+                await DownloadModsAsync(mcPath, token, ApplyDownloadProgress);
 
                 launcher.FileProgressChanged += (s, ev) =>
                 {
@@ -865,7 +880,7 @@ namespace DarkVisualsLauncher1
                 LoadingText.Text = "Загрузка ресурсов Minecraft...";
                 CurrentFileText.Text = "Проверка файлов...";
 
-                await launcher.InstallAsync(targetVersionName);
+                await launcher.InstallAsync(targetVersionName, token);
 
                 LoadingText.Text = "Готово!";
                 CurrentFileText.Text = "Запуск игры...";
@@ -879,6 +894,10 @@ namespace DarkVisualsLauncher1
                 // НОВОЕ: статистика запуска + засекаем время сессии
                 RegisterLaunch();
                 var sessionStart = DateTime.UtcNow;
+
+                // Игра запущена — экран загрузки больше не принадлежит нам,
+                // чтобы finally не переключил его повторно.
+                _onDownloadScreen = false;
 
                 // НОВОЕ: поведение согласно настройке (трей или закрытие)
                 Dispatcher.Invoke(() =>
@@ -904,19 +923,52 @@ namespace DarkVisualsLauncher1
                     });
                 });
             }
+            catch (OperationCanceledException)
+            {
+                // Пользователь нажал "✕ Отмена" — не ошибка, просто уходим на главную.
+            }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка во время загрузки игры:\n{ex.Message}", "Краш", MessageBoxButton.OK, MessageBoxImage.Error);
-                SwitchScreens(ScreenDownload, PageHome);
+            }
+            finally
+            {
+                // Если всё ещё на экране загрузки (ошибка/отмена) — возвращаемся.
+                if (_onDownloadScreen)
+                {
+                    _onDownloadScreen = false;
+                    SwitchScreens(ScreenDownload, PageHome);
+                }
             }
         }
 
         private void BtnCancelDownload_Click(object sender, RoutedEventArgs e)
         {
-            SwitchScreens(ScreenDownload, PageHome);
+            // Теперь реально отменяем скачивание, а не просто прячем экран.
+            _launchCts?.Cancel();
         }
 
-        private async Task DownloadModsAsync(string mcPath)
+        // Прогресс скачивания .enc / fabric-api в ту же полоску, что и CmlLib.
+        private void ApplyDownloadProgress(double fraction, long received, long total)
+        {
+            void Apply()
+            {
+                if (total <= 0) return; // сервер не дал Content-Length — прогресс неизвестен
+
+                int percentage = (int)(fraction * 100);
+                if (percentage > 100) percentage = 100;
+                if (percentage < 0) percentage = 0;
+                ProgressPercentText.Text = $"{percentage} %";
+
+                double maxWidth = ProgressBarFill.Parent is Grid parentGrid ? parentGrid.ActualWidth : 250;
+                ProgressBarFill.Width = (maxWidth * percentage) / 100;
+            }
+
+            if (Dispatcher.CheckAccess()) Apply();
+            else Dispatcher.Invoke(Apply);
+        }
+
+        private async Task DownloadModsAsync(string mcPath, CancellationToken token, Action<double, long, long> reportProgress)
         {
             string modsFolder = Path.Combine(mcPath, "mods");
             Directory.CreateDirectory(modsFolder);
@@ -924,11 +976,17 @@ namespace DarkVisualsLauncher1
             var result = await _licenseClient.DownloadProtectedModAsync(
                 _currentLogin, _currentHwid, _sessionToken,
                 modsFolder, mcPath,
-                status => CurrentFileText.Text = status);
+                status => CurrentFileText.Text = status,
+                reportProgress,
+                token);
 
             _protectedModPath = result.JarPath;
 
-            await _licenseClient.DownloadFabricApiAsync(modsFolder, status => CurrentFileText.Text = status);
+            await _licenseClient.DownloadFabricApiAsync(
+                modsFolder,
+                status => CurrentFileText.Text = status,
+                reportProgress,
+                token);
         }
 
         private class KeyResponse
@@ -983,7 +1041,7 @@ namespace DarkVisualsLauncher1
             }
         }
 
-        private async Task InstallFabricAsync(string mcPath, string mcVersion, string loaderVersion)
+        private async Task InstallFabricAsync(string mcPath, string mcVersion, string loaderVersion, CancellationToken token)
         {
             string versionName = $"fabric-loader-{loaderVersion}-{mcVersion}";
             string versionFolder = Path.Combine(mcPath, "versions", versionName);
@@ -995,7 +1053,7 @@ namespace DarkVisualsLauncher1
                 return;
 
             string fabricApiUrl = $"https://meta.fabricmc.net/v2/versions/loader/{mcVersion}/{loaderVersion}/profile/json";
-            string jsonContent = await Http.GetStringAsync(fabricApiUrl);
+            string jsonContent = await Http.GetStringAsync(fabricApiUrl, token);
 
             string tempPath = jsonFilePath + ".tmp";
             await File.WriteAllTextAsync(tempPath, jsonContent);
